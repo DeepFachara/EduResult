@@ -1,0 +1,203 @@
+@model StudentResultManagement.Models.AdminDashboardViewModel
+
+@{
+    ViewBag.Title = "Admin Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-container">
+
+    <!-- Database Connection Warning if applicable -->
+    @if (ViewBag.DbWarning != null)
+    {
+        <div class="alert alert-warning">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div>
+                <strong>Notice:</strong> @ViewBag.DbWarning
+                <div style="font-size:12px; margin-top:2px;">Make sure your SQL Server (SQLEXPRESS) service is running.</div>
+            </div>
+        </div>
+    }
+
+    <!-- Welcome & Page Header -->
+    <div class="page-header">
+        <div class="page-title-wrap">
+            <h1>Admin Dashboard</h1>
+            <p class="page-subtitle">
+                Welcome back, <strong>@(Session["AdminUsername"] ?? "Administrator")</strong>. Overview of academic results, students, and performance metrics.
+            </p>
+        </div>
+
+        <div class="page-actions" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            @using (Html.BeginForm("TogglePublishStatus", "Admin", FormMethod.Post, new { style = "display:inline-block; margin:0;" }))
+            {
+                if (Model.IsResultPublished)
+                {
+                    <button type="submit" class="btn btn-sm" style="background:#ecfdf5; border:1px solid #10b981; color:#065f46; font-weight:600; padding:7px 12px; border-radius:6px; cursor:pointer;" title="Click to hide results from students">
+                        <i class="fa-solid fa-circle" style="color:#10b981; font-size:9px; vertical-align:middle; margin-right:4px;"></i> Results: Published
+                    </button>
+                }
+                else
+                {
+                    <button type="submit" class="btn btn-sm" style="background:#fffbeb; border:1px solid #f59e0b; color:#92400e; font-weight:600; padding:7px 12px; border-radius:6px; cursor:pointer;" title="Click to make results visible to students">
+                        <i class="fa-solid fa-circle" style="color:#f59e0b; font-size:9px; vertical-align:middle; margin-right:4px;"></i> Results: Draft (Hidden)
+                    </button>
+                }
+            }
+            <a href="@Url.Action("Create", "Student")" class="btn btn-primary">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Add Student</span>
+            </a>
+            <a href="@Url.Action("Create", "Result")" class="btn btn-success">
+                <i class="fa-solid fa-plus"></i>
+                <span>Enter Marks</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-grid">
+        <!-- Total Students -->
+        <div class="stat-card">
+            <div class="stat-info">
+                <span class="stat-label">Total Students</span>
+                <span class="stat-value">@Model.TotalStudents</span>
+                <span class="stat-subtext">Active enrolled students</span>
+            </div>
+            <div class="stat-icon blue">
+                <i class="fa-solid fa-user-graduate"></i>
+            </div>
+        </div>
+
+        <!-- Total Subjects -->
+        <div class="stat-card">
+            <div class="stat-info">
+                <span class="stat-label">Total Subjects</span>
+                <span class="stat-value">@Model.TotalSubjects</span>
+                <span class="stat-subtext">Static curriculum courses</span>
+            </div>
+            <div class="stat-icon purple">
+                <i class="fa-solid fa-book-open"></i>
+            </div>
+        </div>
+
+        <!-- Total Results Entered -->
+        <div class="stat-card">
+            <div class="stat-info">
+                <span class="stat-label">Results Recorded</span>
+                <span class="stat-value">@Model.TotalResults</span>
+                <span class="stat-subtext">Avg Score: @Model.AverageScore marks</span>
+            </div>
+            <div class="stat-icon amber">
+                <i class="fa-solid fa-file-invoice"></i>
+            </div>
+        </div>
+
+        <!-- Pass Percentage -->
+        <div class="stat-card">
+            <div class="stat-info">
+                <span class="stat-label">Overall Pass Rate</span>
+                <span class="stat-value">@Model.PassPercentage%</span>
+                <span class="stat-subtext">
+                    <i class="fa-solid fa-check-circle" style="color:var(--success);"></i> @Model.TotalPassed Passed &bull; @Model.TotalFailed Failed
+                </span>
+            </div>
+            <div class="stat-icon green">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Bar -->
+    <div class="quick-actions-bar">
+        <div class="quick-actions-title">
+            <i class="fa-solid fa-bolt" style="color: var(--primary);"></i>
+            <span>Quick Management Shortcuts</span>
+        </div>
+        <div class="quick-actions-btns">
+            <a href="@Url.Action("Index", "Student")" class="btn btn-sm btn-outline">
+                <i class="fa-solid fa-users"></i> All Students
+            </a>
+            <a href="@Url.Action("Index", "Result")" class="btn btn-sm btn-outline">
+                <i class="fa-solid fa-table-list"></i> All Marks
+            </a>
+            <a href="@Url.Action("StudentResult", "Result")" class="btn btn-sm btn-primary">
+                <i class="fa-solid fa-magnifying-glass"></i> Single Student Result
+            </a>
+        </div>
+    </div>
+
+    <!-- Result Analytics -->
+    <div class="custom-card" style="padding: 26px 28px; margin-bottom: 28px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 10px; background: #ecfdf5; color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    <i class="fa-solid fa-chart-simple"></i>
+                </div>
+                <div>
+                    <h2 style="font-size: 18px; font-weight: 700; color: var(--slate-900); margin: 0 0 2px;">Semester Result Performance</h2>
+                    <span style="font-size: 13px; color: var(--slate-500);">Overall evaluation pass vs. fail ratio</span>
+                </div>
+            </div>
+            <div>
+                <span class="badge @(Model.PassPercentage >= 50 ? "badge-pass" : "badge-fail")" style="font-size: 13px; padding: 6px 14px;">
+                    <i class="fa-solid @(Model.PassPercentage >= 50 ? "fa-circle-check" : "fa-triangle-exclamation")"></i>
+                    @Model.PassPercentage% Overall Clearance
+                </span>
+            </div>
+        </div>
+
+        @if (Model.TotalResults == 0)
+        {
+            <div class="empty-state" style="padding: 30px 10px;">
+                <p style="margin: 0; color: var(--slate-500);">No examination marks recorded yet to analyze performance.</p>
+            </div>
+        }
+        else
+        {
+            <!-- Progress Bar -->
+            <div style="margin-bottom: 24px;">
+                <div style="height: 20px; width: 100%; background: #fee2e2; border-radius: 9999px; overflow: hidden; display: flex; box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);">
+                    <div style="width: @Model.PassPercentage%; background: linear-gradient(90deg, #10b981, #059669); transition: width 0.5s ease;" title="Passed: @Model.PassPercentage%"></div>
+                    <div style="width: @(100 - Model.PassPercentage)%; background: linear-gradient(90deg, #ef4444, #dc2626); transition: width 0.5s ease;" title="Failed: @(100 - Model.PassPercentage)%"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 13px; font-weight: 600;">
+                    <span style="color: var(--success);">
+                        <i class="fa-solid fa-circle" style="font-size: 8px;"></i> Passed: @Model.PassPercentage% (@Model.TotalPassed results)
+                    </span>
+                    <span style="color: var(--danger);">
+                        <i class="fa-solid fa-circle" style="font-size: 8px;"></i> Failed: @(Math.Round(100 - Model.PassPercentage, 1))% (@Model.TotalFailed results)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; padding-top: 18px; border-top: 1px solid var(--slate-100);">
+                <div style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 16px 18px;">
+                    <span style="display: block; font-size: 11.5px; font-weight: 600; text-transform: uppercase; color: var(--slate-500); margin-bottom: 4px;">Total Cleared (Pass)</span>
+                    <strong style="font-size: 22px; color: var(--success); font-weight: 800;">@Model.TotalPassed</strong>
+                    <div style="font-size: 12px; color: var(--slate-400); margin-top: 2px;">Marks &ge; 40 passing threshold</div>
+                </div>
+
+                <div style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 16px 18px;">
+                    <span style="display: block; font-size: 11.5px; font-weight: 600; text-transform: uppercase; color: var(--slate-500); margin-bottom: 4px;">Backlogs (Fail)</span>
+                    <strong style="font-size: 22px; color: var(--danger); font-weight: 800;">@Model.TotalFailed</strong>
+                    <div style="font-size: 12px; color: var(--slate-400); margin-top: 2px;">Marks &lt; 40 passing threshold</div>
+                </div>
+
+                <div style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 16px 18px;">
+                    <span style="display: block; font-size: 11.5px; font-weight: 600; text-transform: uppercase; color: var(--slate-500); margin-bottom: 4px;">Class Average</span>
+                    <strong style="font-size: 22px; color: var(--primary); font-weight: 800;">@Model.AverageScore</strong>
+                    <div style="font-size: 12px; color: var(--slate-400); margin-top: 2px;">Average score across subjects</div>
+                </div>
+
+                <div style="background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 16px 18px;">
+                    <span style="display: block; font-size: 11.5px; font-weight: 600; text-transform: uppercase; color: var(--slate-500); margin-bottom: 4px;">Curriculum Scope</span>
+                    <strong style="font-size: 22px; color: var(--slate-800); font-weight: 800;">@Model.TotalSubjects</strong>
+                    <div style="font-size: 12px; color: var(--slate-400); margin-top: 2px;">Static Curriculum Courses</div>
+                </div>
+            </div>
+        }
+    </div>
+
+</div>
