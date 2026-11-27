@@ -27,24 +27,75 @@ namespace StudentResultManagement.Models
 
 
         // Predefined subjects
-
         public static readonly List<Subject> StaticSubjects = new List<Subject>
-
         {
-
             new Subject { SubjectID = 1, SubjectName = ".NET Technologies", MaxMarks = 100, PassingMarks = 40 },
-
             new Subject { SubjectID = 2, SubjectName = "Operating Systems & Technology (OST)", MaxMarks = 100, PassingMarks = 40 },
-
             new Subject { SubjectID = 3, SubjectName = "Data Science Engineering (DSE)", MaxMarks = 100, PassingMarks = 40 },
-
             new Subject { SubjectID = 4, SubjectName = "Database Management Systems (DBMS)", MaxMarks = 100, PassingMarks = 40 },
-
             new Subject { SubjectID = 5, SubjectName = "Data Structures", MaxMarks = 100, PassingMarks = 40 },
-
             new Subject { SubjectID = 6, SubjectName = "Artificial Intelligence", MaxMarks = 100, PassingMarks = 40 }
-
         };
+
+        static DatabaseHelper()
+        {
+            EnsureSchemaCompatibility();
+        }
+
+        public static void EnsureSchemaCompatibility()
+        {
+            try
+            {
+                using (SqlConnection con = new SqlConnection(connectionString))
+                {
+                    con.Open();
+                    string query = @"
+                        -- Drop obsolete Subject foreign key constraint if it exists on Results
+                        DECLARE @fkName NVARCHAR(200);
+                        SELECT @fkName = fk.name
+                        FROM sys.foreign_keys fk
+                        INNER JOIN sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
+                        WHERE fk.parent_object_id = OBJECT_ID('Results')
+                          AND fkc.parent_column_id = COLUMNPROPERTY(OBJECT_ID('Results'), 'SubjectID', 'ColumnId');
+
+                        IF @fkName IS NOT NULL
+                        BEGIN
+                            EXEC('ALTER TABLE Results DROP CONSTRAINT ' + @fkName);
+                        END
+
+                        -- Ensure Subjects table has entries 1 to 6 if the table exists
+                        IF OBJECT_ID('Subjects') IS NOT NULL
+                        BEGIN
+                            SET IDENTITY_INSERT Subjects ON;
+                            MERGE Subjects AS target
+                            USING (VALUES
+                                (1, N'.NET Technologies', 100, 40),
+                                (2, N'Operating Systems & Technology (OST)', 100, 40),
+                                (3, N'Data Science Engineering (DSE)', 100, 40),
+                                (4, N'Database Management Systems (DBMS)', 100, 40),
+                                (5, N'Data Structures', 100, 40),
+                                (6, N'Artificial Intelligence', 100, 40)
+                            ) AS src (SubjectID, SubjectName, MaxMarks, PassingMarks)
+                            ON target.SubjectID = src.SubjectID
+                            WHEN MATCHED THEN
+                                UPDATE SET SubjectName = src.SubjectName, MaxMarks = src.MaxMarks, PassingMarks = src.PassingMarks
+                            WHEN NOT MATCHED THEN
+                                INSERT (SubjectID, SubjectName, MaxMarks, PassingMarks)
+                                VALUES (src.SubjectID, src.SubjectName, src.MaxMarks, src.PassingMarks);
+                            SET IDENTITY_INSERT Subjects OFF;
+                        END";
+
+                    using (SqlCommand cmd = new SqlCommand(query, con))
+                    {
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch
+            {
+                // Graceful fallback
+            }
+        }
 
 
 
